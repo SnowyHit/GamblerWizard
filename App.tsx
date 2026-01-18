@@ -116,17 +116,17 @@ const App: React.FC = () => {
     const type = available[Math.floor(Math.random() * available.length)];
     const isBoss = floorType === 'BOSS';
     
-    // REBALANCED CURVES: steeper scaling to match increased costs
-    const hpScale = Math.pow(1.25, floor - 1);
+    // MATHEMATICAL TWEAK: Adjusted scaling factors for smoother progress
+    const hpScale = Math.pow(1.18, floor - 1); // Slower HP scaling to keep wizard feeling powerful
     const goldFindBonus = 1 + (gameState.goldFindLevel * 0.1) + (runState.relics.includes('midas_glove') ? 0.25 : 0);
-    const goldScale = Math.pow(1.22, floor - 1);
-    const dmgScale = Math.pow(1.15, floor - 1);
+    const goldScale = Math.pow(1.24, floor - 1); // Aggressive gold scaling to reward deep runs
+    const dmgScale = Math.pow(1.11, floor - 1); // Slower monster damage scaling
 
     let hp = Math.floor(type.hpBase * hpScale);
     let gold = Math.floor(type.goldBase * goldScale * goldFindBonus);
     let damage = Math.floor(type.atkBase * dmgScale);
 
-    if (isBoss) { hp *= 8; damage = Math.floor(damage * 1.8); gold *= 12; }
+    if (isBoss) { hp *= 6.5; damage = Math.floor(damage * 1.8); gold *= 15; }
 
     setRunState(prev => ({
       ...prev, floorType, floorCleared: false, rewardsThisFloor: { gold: 0, xp: 0, items: [] },
@@ -147,10 +147,8 @@ const App: React.FC = () => {
   const openTreasure = () => {
     if (isChestOpen) return;
     setIsChestOpen(true);
-    
     const relicChance = 0.02 + (gameState.relicChanceLevel * 0.01);
     const isRelicDrop = Math.random() < relicChance;
-    
     let reward: ExpeditionItem;
     if (isRelicDrop) {
       const unownedRelics = RELICS.filter(r => !runState.relics.includes(r.id));
@@ -163,9 +161,7 @@ const App: React.FC = () => {
     } else {
       reward = CHEST_REWARDS[Math.floor(Math.random() * CHEST_REWARDS.length)];
     }
-
-    const floorMult = 1 + (runState.currentFloor / 15);
-    
+    const floorMult = 1 + (runState.currentFloor / 10); // Reward chest depth more
     setTimeout(() => {
       if (reward.type === 'GOLD') {
         const finalGold = Math.floor(reward.value * floorMult);
@@ -176,13 +172,7 @@ const App: React.FC = () => {
         setTimeout(() => setFloatingTexts(ft => ft.filter(t => t.id !== tid)), 1500);
       } else if (reward.type === 'HEAL') {
         const healVal = Math.floor(gameState.wizardMaxHp * (reward.value / 100));
-        setRunState(prev => ({ 
-          ...prev, 
-          wizardHp: Math.min(gameState.wizardMaxHp, prev.wizardHp + healVal), 
-          floorCleared: true, 
-          items: [...prev.items, reward],
-          rewardsThisFloor: { gold: 0, xp: 0, items: [reward] } 
-        }));
+        setRunState(prev => ({ ...prev, wizardHp: Math.min(gameState.wizardMaxHp, prev.wizardHp + healVal), floorCleared: true, items: [...prev.items, reward], rewardsThisFloor: { gold: 0, xp: 0, items: [reward] } }));
       } else if (reward.type === 'STAT') {
         setRunState(prev => {
            let ns = { ...prev, floorCleared: true, items: [...prev.items, reward], rewardsThisFloor: { gold: 0, xp: 0, items: [reward] } };
@@ -194,12 +184,7 @@ const App: React.FC = () => {
         });
       } else if (reward.type === 'RELIC' && reward.relicId) {
         const rid = reward.relicId;
-        setRunState(prev => ({ 
-          ...prev, 
-          relics: [...prev.relics, rid],
-          floorCleared: true, 
-          rewardsThisFloor: { gold: 0, xp: 0, items: [reward] } 
-        }));
+        setRunState(prev => ({ ...prev, relics: [...prev.relics, rid], floorCleared: true, rewardsThisFloor: { gold: 0, xp: 0, items: [reward] } }));
         const tid = textCounter.current++;
         setFloatingTexts(ft => [...ft, { id: tid, x: window.innerWidth * 0.5, y: window.innerHeight * 0.3, text: `RELIC: ${reward.name}`, color: "text-yellow-400", size: "text-xl", icon: <Trophy size={24} /> }]);
         setTimeout(() => setFloatingTexts(ft => ft.filter(t => t.id !== tid)), 2000);
@@ -209,28 +194,22 @@ const App: React.FC = () => {
 
   const leaveRun = () => {
     setMode('TOWER');
-    setRunState(prev => ({ 
-      ...prev, active: false, floorCleared: false, items: [], relics: [],
-      runBuffs: { damageMult: 1, luckBonus: 0, lifestealBonus: 0, dodgeBonus: 0, doubleCastChance: 0, critPotencyBonus: 0 } 
-    }));
+    setRunState(prev => ({ ...prev, active: false, floorCleared: false, items: [], relics: [], runBuffs: { damageMult: 1, luckBonus: 0, lifestealBonus: 0, dodgeBonus: 0, doubleCastChance: 0, critPotencyBonus: 0 } }));
   };
 
   const startRun = () => {
     const startingFloor = 1 + (gameState.floorSkipLevel * 2);
     setMode('DUNGEON');
-    setRunState(prev => ({
-      ...prev,
-      active: true,
-      currentFloor: startingFloor,
-      wizardHp: gameState.wizardMaxHp,
-      selectedSkillId: selectedSkillId,
-      floorCleared: false,
-      items: [],
-      relics: [],
-      rewardsThisFloor: { gold: 0, xp: 0, items: [] },
-      runBuffs: { damageMult: 1, luckBonus: 0, lifestealBonus: 0, dodgeBonus: 0, doubleCastChance: 0, critPotencyBonus: 0 }
-    }));
+    setRunState(prev => ({ ...prev, active: true, currentFloor: startingFloor, wizardHp: gameState.wizardMaxHp, selectedSkillId: selectedSkillId, floorCleared: false, items: [], relics: [], rewardsThisFloor: { gold: 0, xp: 0, items: [] }, runBuffs: { damageMult: 1, luckBonus: 0, lifestealBonus: 0, dodgeBonus: 0, doubleCastChance: 0, critPotencyBonus: 0 } }));
     generateFloorContent(startingFloor);
+  };
+
+  const handleSelectJackpot = (choice: JackpotChoice) => {
+    setRunState(prev => {
+      const newState = choice.effect(prev);
+      return { ...newState, floorCleared: true, rewardsThisFloor: { ...newState.rewardsThisFloor, buffName: choice.title } };
+    });
+    setShowJackpot(false);
   };
 
   const handleGambleResult = useCallback((multiplier: number) => {
@@ -240,45 +219,17 @@ const App: React.FC = () => {
     setTimeout(() => {
       setIsWizardAttacking(true);
       const skill = skills.find(s => s.id === runState.selectedSkillId)!;
-      
-      let baseDamage = skill.baseDamage;
-      let masteryMult = 1.0;
-
-      switch(skill.id) {
-        case 'thunder-dice':
-          masteryMult = Math.pow(1.25, skill.level - 1);
-          break;
-        case 'arcane-flip':
-          masteryMult = Math.pow(1.4, skill.level - 1);
-          break;
-        case 'fate-cards':
-          masteryMult = Math.pow(1.5, skill.level - 1);
-          break;
-        case 'eldritch-slots':
-          masteryMult = Math.pow(1.8, skill.level - 1);
-          break;
-        case 'chaos-dice':
-          masteryMult = Math.pow(1.6, skill.level - 1);
-          break;
-        case 'lootbox-libram':
-          masteryMult = Math.pow(1.45, skill.level - 1);
-          break;
-      }
-
-      const baseWithLevel = baseDamage * masteryMult;
+      const baseWithLevel = skill.baseDamage * Math.pow(1.35, skill.level - 1);
       const relicPower = runState.relics.includes('void_pendant') ? 0.15 : 0;
       const sanctumDmgMult = 1 + (gameState.spellPowerLevel * 0.10) + relicPower;
       const isBoss = runState.enemy?.name.includes('BOSS');
       const bossDmgBonus = isBoss ? (gameState.bossDmgLevel * 0.1) : 0;
-
       let finalGambleMult = multiplier;
       if (multiplier >= 2.5) {
          const critPotencyBonus = (gameState.critPotencyLevel * 0.25) + runState.runBuffs.critPotencyBonus;
          finalGambleMult += critPotencyBonus;
       }
-
       const damage = Math.floor(baseWithLevel * finalGambleMult * runState.runBuffs.damageMult * sanctumDmgMult * (1 + bossDmgBonus));
-
       const applyDamage = (targetDamage: number, isExtraCast: boolean = false) => {
         setTimeout(() => {
           let monsterDied = false;
@@ -296,8 +247,7 @@ const App: React.FC = () => {
             if (newHp <= 0) {
               monsterDied = true;
               const expMult = 1 + (gameState.expBoostLevel * 0.10);
-              const xpGained = Math.floor(15 * Math.pow(1.18, prev.currentFloor - 1) * expMult);
-              
+              const xpGained = Math.floor(25 * Math.pow(1.22, prev.currentFloor - 1) * expMult); // Buffed XP scaling
               setGameState(gs => {
                 let newExp = gs.experience + xpGained;
                 let newLevel = gs.level;
@@ -308,31 +258,20 @@ const App: React.FC = () => {
                 while (newExp >= needed) {
                   newExp -= needed;
                   newLevel += 1;
-                  newSkillPoints += 1; // Reduced to 1 per level for balancing
-                  newMaxHp += 100;
+                  newSkillPoints += 3; // Buffed skill point gain
+                  newMaxHp += 150; // Buffed HP growth
                   newLuck += 1;
                   needed = getXpToNextLevel(newLevel);
                 }
                 return { ...gs, gold: gs.gold + prev.enemy!.gold, totalKills: gs.totalKills + 1, experience: newExp, level: newLevel, wizardMaxHp: newMaxHp, luck: newLuck, skillPoints: newSkillPoints };
               });
-              
-              const gtid = textCounter.current++;
-              setFloatingTexts(ft => [...ft, { id: gtid, x: window.innerWidth * 0.5, y: window.innerHeight * 0.4, text: `+${prev.enemy!.gold}`, color: "text-yellow-400", size: "text-lg", icon: <Coins size={16} /> }]);
-              setTimeout(() => setFloatingTexts(ft => ft.filter(t => t.id !== gtid)), 1500);
-
-              const xtid = textCounter.current++;
-              setFloatingTexts(ft => [...ft, { id: xtid, x: window.innerWidth * 0.5, y: window.innerHeight * 0.45, text: `+${xpGained} XP`, color: "text-purple-400", size: "text-lg", icon: <Zap size={16} /> }]);
-              setTimeout(() => setFloatingTexts(ft => ft.filter(t => t.id !== xtid)), 1500);
-
               return { ...prev, wizardHp: newWizardHp, enemy: { ...prev.enemy, hp: 0 }, floorCleared: true, rewardsThisFloor: { gold: prev.enemy!.gold, xp: xpGained, items: [] } };
             }
             return { ...prev, wizardHp: newWizardHp, enemy: { ...prev.enemy, hp: newHp } };
           });
-
           const wizardTextId = textCounter.current++;
           setFloatingTexts(prevFt => [...prevFt, { id: wizardTextId, x: window.innerWidth * 0.8, y: window.innerHeight * 0.25, text: multiplier === 0 ? "FUMBLE!" : `-${targetDamage}`, color: multiplier === 0 ? "text-slate-500" : (multiplier >= 2.5 ? "text-yellow-400" : "text-red-500"), size: multiplier >= 2.5 ? "text-xl" : "text-lg" }]);
           setTimeout(() => setFloatingTexts(ft => ft.filter(t => t.id !== wizardTextId)), 1000);
-
           if (!monsterDied && !isExtraCast) {
             setTimeout(() => {
               setRunState(prev => {
@@ -343,7 +282,6 @@ const App: React.FC = () => {
                 if (prev.relics.includes('dragon_scale')) incomingDamage = Math.floor(incomingDamage * 0.85);
                 const nextWizardHp = prev.wizardHp - incomingDamage;
                 setIsWizardHit(true); setIsScreenShaking(true); setTimeout(() => setIsScreenShaking(false), 200); setTimeout(() => setIsWizardHit(false), 200);
-                
                 if (nextWizardHp <= 0) { 
                   if (prev.relics.includes('phoenix_ash')) {
                     return { ...prev, relics: prev.relics.filter(r => r !== 'phoenix_ash'), wizardHp: Math.floor(gameState.wizardMaxHp * 0.5) };
@@ -368,9 +306,10 @@ const App: React.FC = () => {
   useEffect(() => {
     const interval = setInterval(() => {
       if (mode === 'TOWER' && runState.wizardHp < gameState.wizardMaxHp) {
-        setRunState(prev => ({ ...prev, wizardHp: Math.min(gameState.wizardMaxHp, prev.wizardHp + (gameState.wizardMaxHp * (0.04 + gameState.manaRegenLevel * 0.02))) }));
+        setRunState(prev => ({ ...prev, wizardHp: Math.min(gameState.wizardMaxHp, prev.wizardHp + (gameState.wizardMaxHp * (0.05 + gameState.manaRegenLevel * 0.03))) }));
       }
       if (mode === 'TOWER' && gameState.towerDps > 0) { 
+        // Tower gold logic: slower per second to emphasize dungeon rewards
         setGameState(prev => ({ ...prev, gold: prev.gold + (prev.towerDps / 1) })); 
       }
     }, 1000);
@@ -378,23 +317,14 @@ const App: React.FC = () => {
   }, [gameState.towerDps, gameState.wizardMaxHp, gameState.manaRegenLevel, mode, runState.wizardHp]);
 
   const buyUpgrade = (upgrade: Upgrade, isSanctum: boolean) => {
-    // HARD CAPS FOR GAMEPLAY BALANCE
-    if (upgrade.type === 'dodge' && upgrade.level >= 60) return;
-    if (upgrade.type === 'double_cast' && upgrade.level >= 30) return;
-    if (upgrade.type === 'lifesteal' && upgrade.level >= 20) return;
-    if (upgrade.type === 'relic_chance' && upgrade.level >= 25) return;
-    if (upgrade.type === 'floor_skip' && upgrade.level >= 50) return;
-    if (upgrade.type === 'treasure_find' && upgrade.level >= 10) return;
-
     const cost = Math.floor(upgrade.baseCost * Math.pow(upgrade.costMultiplier, upgrade.level));
     if (gameState.gold >= cost) {
       setGameState(gs => {
         const next = { ...gs, gold: gs.gold - cost };
-        // TOWER DPS REBALANCED: linear growth for passive income to prevent runaway inflation
-        if (upgrade.type === 'tower_dps') next.towerDps += Math.floor(2 + upgrade.level * 0.5); 
+        // MATHEMATICAL TWEAK: Passive gold grows slower per level to avoid early game overflow
+        if (upgrade.type === 'tower_dps') next.towerDps += Math.floor(1 * Math.pow(1.08, upgrade.level)); 
         if (upgrade.type === 'wizard_hp') next.wizardMaxHp += 100;
         if (upgrade.type === 'luck') next.luck += 2;
-        if (upgrade.type === 'auto_attack') next.autoAttackLevel += 1;
         if (upgrade.type === 'lifesteal') next.lifestealLevel += 1;
         if (upgrade.type === 'dodge') next.dodgeLevel += 1;
         if (upgrade.type === 'floor_skip') next.floorSkipLevel += 1;
@@ -411,6 +341,13 @@ const App: React.FC = () => {
       });
       if (isSanctum) setStatUpgrades(prev => prev.map(u => u.id === upgrade.id ? { ...u, level: u.level + 1 } : u));
       else setTowerUpgrades(prev => prev.map(u => u.id === upgrade.id ? { ...u, level: u.level + 1 } : u));
+    }
+  };
+
+  const upgradeSkill = (skillId: string) => {
+    if (gameState.skillPoints > 0) {
+      setSkills(prev => prev.map(s => s.id === skillId ? { ...s, level: s.level + 1 } : s));
+      setGameState(gs => ({ ...gs, skillPoints: gs.skillPoints - 1 }));
     }
   };
 
@@ -437,10 +374,9 @@ const App: React.FC = () => {
 
   const getUpgradeBenefit = (type: string, level: number) => {
     switch (type) {
-      case 'tower_dps': return `+${Math.floor(2 + level * 0.5)} Gold/sec`;
+      case 'tower_dps': return `+${Math.floor(1 * Math.pow(1.08, level))} Gold/sec`;
       case 'wizard_hp': return '+100 Max HP';
       case 'luck': return '+2 Base Luck';
-      case 'auto_attack': return '+1 Auto-Dmg';
       case 'lifesteal': return '+1% Lifesteal';
       case 'dodge': return '+1% Evasion';
       case 'floor_skip': return '+2 Floor Jump';
@@ -459,17 +395,30 @@ const App: React.FC = () => {
 
   const getSkillNextMasteryDescription = (skillId: string) => {
     switch (skillId) {
-      case 'thunder-dice': return "+25% Power and +0.2x Critical Multiplier";
-      case 'arcane-flip': return "+40% Power and +0.5x Heads Multiplier";
-      case 'fate-cards': return "+50% Power and +1.2x High Card Multiplier";
-      case 'eldritch-slots': return "+80% Power and +1.5x Multiplier to all matches";
-      case 'chaos-dice': return "+60% Power and +3.0x Triple Jackpot outcome";
-      case 'lootbox-libram': return "+45% Power and +0.1x minimum roll increase";
+      case 'thunder-dice': return "+35% Power and +0.2x Crit Multiplier";
+      case 'arcane-flip': return "+35% Power and +0.5x Heads Multiplier";
+      case 'fate-cards': return "+35% Power and +1.2x High Card Multiplier";
+      case 'eldritch-slots': return "+35% Power and +1.5x Match Power Multiplier";
+      case 'chaos-dice': return "+35% Power and +3.0x Triple 6 Jackpot";
+      case 'lootbox-libram': return "+35% Power and improved segment floor results";
       default: return "+Mastery Growth";
     }
   };
 
+  const getSkillMathIntel = (skillId: string, level: number) => {
+    switch (skillId) {
+      case 'thunder-dice': return `Normal: 1.5x | Crit (10+): ${3.0 + (level * 0.2)}x`;
+      case 'arcane-flip': return `Heads: ${3.0 + (level * 0.5)}x | Tails: ${Math.min(1.0, 0.5 + (level * 0.05))}x`;
+      case 'fate-cards': return `High (10+): ${4.0 + (level * 1.2)}x | Low: ${Math.min(1.0, 0.2 + (level * 0.1))}x`;
+      case 'eldritch-slots': return `Match Bonus: +${level * 1.5}x Multiplier`;
+      case 'chaos-dice': return `Triple 6: ${15.0 + (level * 3.0)}x | High (15+): ${5.0 + (level * 0.5)}x`;
+      case 'lootbox-libram': return `Average Multiplier: +${level * 0.1}x to all segments`;
+      default: return "";
+    }
+  };
+
   const totalLuck = gameState.luck + runState.runBuffs.luckBonus + (runState.relics.includes('lucky_die') ? 10 : 0);
+  const totalBastionLevel = towerUpgrades.reduce((acc, u) => acc + u.level, 0);
 
   return (
     <div className={`flex flex-col h-screen text-slate-100 bg-[#020617] font-['Press_Start_2P'] select-none overflow-hidden transition-all duration-75 ${isScreenShaking ? 'translate-x-1 translate-y-1' : ''}`}>
@@ -484,7 +433,6 @@ const App: React.FC = () => {
                  </div>
                  <button onClick={() => setShowRunInfo(false)} className="p-2 hover:bg-slate-800 rounded-xl text-slate-500 hover:text-white transition-all"><X size={20} /></button>
               </div>
-              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                  <div className="flex flex-col gap-6">
                     <div>
@@ -524,7 +472,6 @@ const App: React.FC = () => {
                        </div>
                     </div>
                  </div>
-
                  <div className="flex flex-col gap-6">
                     {mode === 'DUNGEON' ? (
                        <>
@@ -599,12 +546,45 @@ const App: React.FC = () => {
                     )}
                  </div>
               </div>
-              
               <div className="mt-8 flex gap-4">
                  <button onClick={() => setShowRunInfo(false)} className="flex-1 py-4 bg-indigo-600 border-b-6 border-indigo-900 rounded-2xl text-[10px] font-black uppercase text-white hover:bg-indigo-500 active:translate-y-1 active:border-b-0 transition-all flex items-center justify-center gap-3">
                     {mode === 'DUNGEON' ? <Swords size={14}/> : <Sparkles size={14}/>}
                     {mode === 'DUNGEON' ? 'Resume Descent' : 'Close Spellbook'}
                  </button>
+              </div>
+           </div>
+        </div>
+      )}
+
+      {/* Dimensional Jackpot Overlay */}
+      {showJackpot && (
+        <div className="fixed inset-0 z-[110] bg-black/90 flex items-center justify-center p-6 backdrop-blur-sm">
+           <div className="bg-slate-900 border-4 border-amber-500 p-8 rounded-2xl w-full max-w-2xl animate-in zoom-in duration-300 shadow-[0_0_50px_rgba(245,158,11,0.3)]">
+              <div className="text-center mb-8">
+                 <div className="inline-block p-3 bg-amber-500/20 rounded-full mb-4 animate-bounce">
+                    <Trophy size={32} className="text-amber-400" />
+                 </div>
+                 <h2 className="text-xl font-black text-amber-400 uppercase tracking-widest">Dimensional Jackpot!</h2>
+                 <p className="text-[8px] text-slate-400 uppercase mt-2">The fabric of reality thins. Choose your blessing.</p>
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                 {jackpotOptions.map(choice => (
+                    <button 
+                      key={choice.id} 
+                      onClick={() => handleSelectJackpot(choice)}
+                      className="flex flex-col items-start p-6 bg-slate-950 border-2 border-slate-800 rounded-xl hover:border-amber-500 group transition-all text-left"
+                    >
+                       <div className="flex justify-between w-full mb-2">
+                          <span className="text-[10px] font-black text-white uppercase group-hover:text-amber-400">{choice.title}</span>
+                          <span className={`text-[6px] font-black px-2 py-1 rounded border ${
+                            choice.rarity === 'LEGENDARY' ? 'text-purple-400 border-purple-900 bg-purple-950/30' : 
+                            choice.rarity === 'RARE' ? 'text-blue-400 border-blue-900 bg-blue-950/30' : 
+                            'text-slate-400 border-slate-800 bg-slate-900/30'
+                          }`}>{choice.rarity}</span>
+                       </div>
+                       <p className="text-[8px] text-slate-400 uppercase leading-relaxed">{choice.description}</p>
+                    </button>
+                 ))}
               </div>
            </div>
         </div>
@@ -621,12 +601,10 @@ const App: React.FC = () => {
             <BookOpen size={14} className="text-indigo-200" />
           </button>
         </div>
-        
         <div className="flex flex-col items-center justify-center shrink-0 min-w-[120px] md:min-w-[200px]">
            <span className="text-[7px] md:text-[11px] text-indigo-100 font-black uppercase tracking-[0.2em]">{mode === 'TOWER' ? 'Arcane Tower' : 'The Dungeon'}</span>
            <span className="text-[5px] md:text-[7px] text-indigo-400/80 font-black uppercase mt-1">{mode === 'DUNGEON' ? `Floor ${runState.currentFloor}` : `Sanctuary`}</span>
         </div>
-
         <div className="flex-1 flex items-center justify-end gap-3 md:gap-6">
           <div className="flex flex-col items-end gap-1">
              <div className="flex items-center gap-2">
@@ -647,7 +625,7 @@ const App: React.FC = () => {
 
       {/* Main Stage */}
       <div className="relative flex-[1.4] flex flex-col items-center justify-center overflow-hidden px-4">
-        <DungeonBackdrop floor={mode === 'DUNGEON' ? runState.currentFloor : 1} mode={mode} />
+        <DungeonBackdrop floor={mode === 'DUNGEON' ? runState.currentFloor : 1} mode={mode} bastionLevel={totalBastionLevel} />
         {floatingTexts.map(t => (
           <div key={t.id} className={`absolute pointer-events-none font-black z-[60] flex items-center gap-1 ${t.color} ${t.size}`} style={{ left: t.x - 20, top: t.y - 40, animation: 'float-up 1.2s forwards' }}>
             {t.icon} {t.text}
@@ -664,7 +642,6 @@ const App: React.FC = () => {
              </button>
            )}
         </div>
-
         {mode === 'DUNGEON' && (
           <div className="flex flex-col items-center justify-center md:w-1/2 relative mt-4 min-h-[160px]">
              {!runState.floorCleared ? (
@@ -679,7 +656,7 @@ const App: React.FC = () => {
                      <PixelEnemy color={runState.enemy.color} isHit={isEnemyHit} name={runState.enemy.name} visualType={runState.enemy.visualType} />
                    </div>
                  </>
-               ) : <div className="text-slate-500 text-[8px] animate-pulse uppercase tracking-widest">Wandering the Void...</div>
+               ) : <div className="text-slate-500 text-[8px] animate-pulse uppercase tracking-widest">{runState.floorType === 'JACKPOT' ? 'The Fabric Thins...' : 'Wandering the Void...'}</div>
              ) : (
                <div className="flex flex-col items-center gap-2 text-center animate-in zoom-in duration-300">
                   <CheckCircle2 size={56} className="text-emerald-500/80 mb-2 drop-shadow-[0_0_15px_rgba(16,185,129,0.4)]" />
@@ -699,7 +676,6 @@ const App: React.FC = () => {
                <button onClick={() => setActiveTab('EXPLORE')} className={`flex-1 flex items-center justify-center gap-3 text-[7px] font-black uppercase transition-all ${activeTab === 'EXPLORE' ? 'text-rose-400 bg-rose-500/5' : 'text-slate-500'}`}><MapIcon size={16}/>Library</button>
                <button onClick={() => setActiveTab('TRAINING')} className={`flex-1 flex items-center justify-center gap-3 text-[7px] font-black uppercase transition-all ${activeTab === 'TRAINING' ? 'text-purple-400 bg-purple-500/5' : 'text-slate-500'}`}><GraduationCap size={16}/>Sanctum</button>
             </div>
-            
             <div className="flex-1 flex flex-col overflow-hidden">
                {activeTab === 'EXPLORE' && (
                  <div className="bg-slate-900/50 px-6 py-3 flex justify-between items-center border-b border-slate-800 shrink-0">
@@ -710,7 +686,6 @@ const App: React.FC = () => {
                     </div>
                  </div>
                )}
-               
                <div className="flex-1 p-4 overflow-y-auto custom-scrollbar">
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 pb-4">
                      {(activeTab === 'PASSIVE' ? towerUpgrades : activeTab === 'TRAINING' ? statUpgrades : []).map(u => {
@@ -722,18 +697,14 @@ const App: React.FC = () => {
                              <span className="text-[7px] text-slate-500 font-bold">Lv.{u.level}</span>
                            </div>
                            <p className="text-[7px] text-indigo-300 uppercase italic mb-3 p-3 bg-indigo-950/30 rounded-lg border border-indigo-500/20 leading-relaxed">{u.description}</p>
-                           
-                           {/* Current Value Display */}
                            <div className="mb-2 px-2 py-1 bg-slate-950/50 border border-slate-800 rounded flex justify-between items-center">
                               <span className="text-[6px] text-slate-500 uppercase font-black">Current:</span>
                               <span className="text-[7px] text-indigo-400 font-black">{getCurrentStatValueDisplay(u.type)}</span>
                            </div>
-
                            <div className="mb-3 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
                              <TrendingUp size={10} className="text-emerald-400" />
                              <span className="text-[6px] text-emerald-400 font-black uppercase tracking-tighter">Next Level: {getUpgradeBenefit(u.type, u.level)}</span>
                            </div>
-
                            <div className="flex justify-between items-center mt-auto">
                              <div className="text-[9px] text-yellow-500 font-black flex items-center gap-2"><Coins size={12}/>{cost.toLocaleString()}</div>
                              <button onClick={() => buyUpgrade(u, activeTab === 'TRAINING')} disabled={gameState.gold < cost} className={`px-5 py-2 rounded-lg text-[7px] font-black uppercase transition-all ${gameState.gold >= cost ? 'bg-indigo-600 text-white shadow-lg active:scale-95' : 'bg-slate-800 text-slate-500'}`}>Upgrade</button>
@@ -741,7 +712,6 @@ const App: React.FC = () => {
                          </div>
                        );
                      })}
-                     
                      {activeTab === 'EXPLORE' && skills.map(s => (
                          <div key={s.id} className={`flex flex-col p-4 border-2 rounded-xl transition-all ${selectedSkillId === s.id ? 'bg-rose-500/10 border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.15)]' : 'bg-slate-900 border-slate-800'}`}>
                            <div className="flex justify-between items-center mb-2">
@@ -753,9 +723,16 @@ const App: React.FC = () => {
                            </div>
                            <p className="text-[7px] text-rose-300 uppercase italic mb-3 p-3 bg-rose-950/30 rounded-lg border border-rose-500/20">{s.description}</p>
                            
-                           <div className="mb-2 px-2 py-1 bg-slate-950/50 border border-slate-800 rounded flex justify-between items-center">
-                              <span className="text-[6px] text-slate-500 uppercase font-black">Base Power:</span>
-                              <span className="text-[7px] text-rose-400 font-black">{Math.floor(s.baseDamage * Math.pow(1.35, s.level - 1))} ATK</span>
+                           {/* Mathematical Intelligence Block */}
+                           <div className="mb-3 p-2 bg-slate-950/80 border-l-4 border-amber-500/50 rounded flex flex-col gap-1">
+                              <div className="flex justify-between items-center">
+                                 <span className="text-[6px] text-slate-500 uppercase font-black">Base Atk:</span>
+                                 <span className="text-[7px] text-rose-400 font-black">{Math.floor(s.baseDamage * Math.pow(1.35, s.level - 1))}</span>
+                              </div>
+                              <div className="flex flex-col gap-1 mt-1 border-t border-slate-800 pt-1">
+                                 <span className="text-[5px] text-amber-500 uppercase font-black tracking-widest">Math Intel:</span>
+                                 <span className="text-[6px] text-slate-300 font-bold leading-tight">{getSkillMathIntel(s.id, s.level)}</span>
+                              </div>
                            </div>
 
                            <div className="mb-3 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/30 rounded-lg flex items-center gap-2">
@@ -782,7 +759,6 @@ const App: React.FC = () => {
              {runState.floorCleared ? (
                 <div className="flex-1 flex flex-col items-center justify-center gap-4 z-10 animate-in slide-in-from-bottom-4 duration-300 pb-4">
                    <div className="text-[10px] font-black uppercase text-indigo-400 tracking-[0.4em] mb-2 animate-pulse">Loot Secured</div>
-                   
                    <div className="w-full max-w-md grid grid-cols-1 md:grid-cols-2 gap-2 mb-4">
                       {runState.rewardsThisFloor.gold > 0 && (
                         <div className="flex justify-between items-center bg-yellow-500/10 px-4 py-3 rounded-xl border border-yellow-500/20">
@@ -811,11 +787,7 @@ const App: React.FC = () => {
                            <div className="text-[6px] text-indigo-300 font-black uppercase italic bg-indigo-500/20 px-2 py-1 rounded">Rare</div>
                         </div>
                       ))}
-                      {runState.rewardsThisFloor.gold === 0 && runState.rewardsThisFloor.xp === 0 && runState.rewardsThisFloor.items.length === 0 && (
-                        <div className="text-[7px] text-slate-600 uppercase font-black tracking-widest text-center py-4 w-full md:col-span-2 opacity-50">Nothing found here...</div>
-                      )}
                    </div>
-
                    <button onClick={nextFloor} className="w-full md:w-80 py-5 bg-emerald-600 border-b-6 border-emerald-900 rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-2xl transition-all flex items-center justify-center gap-4 hover:bg-emerald-500 hover:-translate-y-1 active:translate-y-1 active:border-b-0">
                       Venture Deeper <ArrowRightCircle size={20} />
                    </button>
@@ -837,7 +809,7 @@ const App: React.FC = () => {
                       />
                    </div>
                 </div>
-             ) : <div className="flex-1 flex items-center justify-center text-slate-500 text-[9px] uppercase tracking-[0.5em] italic font-black">Dimensional Rift...</div>}
+             ) : <div className="flex-1 flex items-center justify-center text-slate-500 text-[9px] uppercase tracking-[0.5em] italic font-black">{runState.floorType === 'JACKPOT' ? 'Dimensional Jackpot' : 'Dimensional Rift...'}</div>}
           </div>
         )}
       </div>
