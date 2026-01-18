@@ -84,6 +84,11 @@ export interface GameState {
   level: number;
   experience: number;
   skillPoints: number;
+  // New Mobile Settings
+  isAdFree: boolean;
+  sfxEnabled: boolean;
+  musicEnabled: boolean;
+  syncToken?: string;
 }
 
 export interface RunState {
